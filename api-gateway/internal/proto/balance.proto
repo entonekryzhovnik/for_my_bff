@@ -1,0 +1,45 @@
+syntax = "proto3";
+
+package balance;
+
+option go_package = "./balance";
+
+service BalanceService {
+  // Получить баланс пользователя
+  rpc GetBalance(GetBalanceRequest) returns (GetBalanceResponse);
+
+  // Пополнить баланс
+  rpc AddFunds(AddFundsRequest) returns (AddFundsResponse);
+
+  // Списать средства
+  rpc DeductFunds(DeductFundsRequest) returns (DeductFundsResponse);
+}
+
+message GetBalanceRequest {
+  string user_id = 1;
+}
+
+message GetBalanceResponse {
+  string user_id = 1;
+  double balance = 2;
+}
+
+message AddFundsRequest {
+  string user_id = 1;
+  double amount = 2;
+}
+
+message AddFundsResponse {
+  bool success = 1;
+  double new_balance = 2;
+}
+
+message DeductFundsRequest {
+  string user_id = 1;
+  double amount = 2;
+}
+
+message DeductFundsResponse {
+  bool success = 1;
+  double new_balance = 2;
+}

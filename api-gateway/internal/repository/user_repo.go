@@ -1,17 +1,23 @@
 package repository
 
+import (
+	"api-gateway/gen/go/user"
+	"context"
+)
+
 type UserRepository struct{}
 
+// Конструктор
 func NewUserRepository() *UserRepository {
 	return &UserRepository{}
 }
 
-func (r *UserRepository) CreateUser() error {
-	// TODO: gRPC вызов к user-service
-	return nil
+// Заглушка для получения пользователя
+func (r *UserRepository) GetUser(ctx context.Context, id string) (*user.GetUserResponse, error) {
+	return &user.GetUserResponse{Name: "John Doe"}, nil
 }
 
-func (r *UserRepository) GetUser() (string, error) {
-	// TODO: gRPC вызов к user-service
-	return "mock_user", nil
+// Заглушка для создания пользователя
+func (r *UserRepository) CreateUser(ctx context.Context, name string) (*user.CreateUserResponse, error) {
+	return &user.CreateUserResponse{Id: "12345"}, nil
 }

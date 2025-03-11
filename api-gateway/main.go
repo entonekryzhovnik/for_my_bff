@@ -48,6 +48,8 @@ func main() {
 	// Роутинг
 	e.POST("/user/create", userHandler.CreateUser)
 	e.GET("/user/get", userHandler.GetUser)
+	e.GET("/users/:id", userHandler.GetUser)
+	e.POST("/users", userHandler.CreateUser)
 
 	e.POST("/task/create", taskHandler.CreateTask)
 	e.GET("/task/get/:taskID", taskHandler.GetTaskByID)

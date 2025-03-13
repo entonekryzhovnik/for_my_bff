@@ -2,6 +2,7 @@ package main
 
 import (
 	"api-gateway/config"
+	"api-gateway/internal/clients"
 	"api-gateway/internal/handlers"
 	"api-gateway/internal/repository"
 	"api-gateway/internal/service"
@@ -31,23 +32,36 @@ func main() {
 	e := echo.New()
 
 	// Инициализация репозиториев
-	userRepo := repository.NewUserRepository()
+	//userRepo := repository.NewUserRepository()
 	taskRepo := repository.NewTaskRepository()
 	balanceRepo := repository.NewBalanceRepository()
 
 	// Инициализация сервисов
-	userService := service.NewUserService(userRepo)
+	//userService := service.NewUserService(userRepo)
 	taskService := service.NewTaskService(taskRepo)
 	balanceService := service.NewBalanceService(balanceRepo)
 
 	// Инициализация хэндлеров
-	userHandler := handlers.NewUserHandler(userService)
+	//userHandler := handlers.NewUserHandler(userService)
 	taskHandler := handlers.NewTaskHandler(taskService)
 	balanceHandler := handlers.NewBalanceHandler(balanceService)
 
 	// Роутинг
-	e.POST("/user/create", userHandler.CreateUser)
-	e.GET("/user/get", userHandler.GetUser)
+	//e.POST("/user/create", userHandler.CreateUser)
+	//e.GET("/user/get", userHandler.GetUser)
+	//e.GET("/users/:id", userHandler.GetUser)
+	//e.POST("/users", userHandler.CreateUser)
+
+	// Создаём gRPC-клиент для user-service
+	userClient, err := clients.NewUserClient(cfg.GRPCUserService)
+	if err != nil {
+		log.Fatal().Err(err).Msg("Failed to create user gRPC client")
+	}
+
+	// Инициализация хэндлеров
+	userHandler := handlers.NewUserHandler(userClient)
+
+	// Роутинг
 	e.GET("/users/:id", userHandler.GetUser)
 	e.POST("/users", userHandler.CreateUser)
 

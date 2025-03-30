@@ -6,6 +6,11 @@ import (
 	"api-gateway/internal/handlers"
 	"api-gateway/internal/repository"
 	"api-gateway/internal/service"
+	"context"
+	"os"
+	"os/signal"
+	"syscall"
+
 	"github.com/joho/godotenv"
 	"github.com/labstack/echo/v4"
 	"github.com/rs/zerolog"
@@ -31,6 +36,22 @@ func main() {
 	// Создаем Echo instance
 	e := echo.New()
 
+	// Создаем контекст с отменой для graceful shutdown
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	// Инициализация grpc клиент-менеджера
+	grpcManager := clients.NewGRPCClientManager(cfg.GRPCUserService)
+
+	if err := grpcManager.Start(ctx); err != nil {
+		log.Fatal().Err(err).Msg("Failed to start gRPC client manager")
+	}
+	defer func() {
+		if err := grpcManager.Close(); err != nil {
+			log.Error().Err(err).Msg("Error while closing gRPC connections")
+		}
+	}()
+
 	// Инициализация репозиториев
 	//userRepo := repository.NewUserRepository()
 	taskRepo := repository.NewTaskRepository()
@@ -42,24 +63,9 @@ func main() {
 	balanceService := service.NewBalanceService(balanceRepo)
 
 	// Инициализация хэндлеров
-	//userHandler := handlers.NewUserHandler(userService)
+	userHandler := handlers.NewUserHandler(grpcManager.UserService())
 	taskHandler := handlers.NewTaskHandler(taskService)
 	balanceHandler := handlers.NewBalanceHandler(balanceService)
-
-	// Роутинг
-	//e.POST("/user/create", userHandler.CreateUser)
-	//e.GET("/user/get", userHandler.GetUser)
-	//e.GET("/users/:id", userHandler.GetUser)
-	//e.POST("/users", userHandler.CreateUser)
-
-	// Создаём gRPC-клиент для user-service
-	userClient, err := clients.NewUserClient(cfg.GRPCUserService)
-	if err != nil {
-		log.Fatal().Err(err).Msg("Failed to create user gRPC client")
-	}
-
-	// Инициализация хэндлеров
-	userHandler := handlers.NewUserHandler(userClient)
 
 	// Роутинг
 	e.GET("/users/:id", userHandler.GetUser)
@@ -73,6 +79,20 @@ func main() {
 
 	e.GET("/balance/:userID", balanceHandler.GetBalanceByUserID)
 
-	log.Info().Msg("API Gateway is running on :8080")
-	log.Fatal().Err(e.Start(":" + cfg.ServerPort))
+	// Graceful shutdown
+	go func() {
+		quit := make(chan os.Signal, 1)
+		signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
+		<-quit
+		log.Info().Msg("Shutting down API Gateway...")
+		cancel()
+		if err := e.Shutdown(ctx); err != nil {
+			log.Fatal().Err(err).Msg("Error during server shutdown")
+		}
+	}()
+
+	log.Info().Msg("API Gateway is running on :" + cfg.ServerPort)
+	if err := e.Start(":" + cfg.ServerPort); err != nil {
+		log.Fatal().Err(err).Msg("Failed to start server")
+	}
 }
